@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=yourpassword
+      - MYSQL_DATABASE=yourdatabase
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .  # Use the root directory where Vite project is located
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: yourpassword
+      MYSQL_DATABASE: yourdatabase
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:
+    driver: local
