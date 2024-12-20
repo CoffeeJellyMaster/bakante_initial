@@ -1,54 +1,373 @@
-// import express from 'express';
+
+
+// import express, { Request, Response, Router } from 'express';
 // import db from '../config/db';
 
-// const router = express.Router();
+// const router: Router = express.Router();
 
-// // Example endpoint to get data from the database
-// router.get('/data', async (req, res) => {
+// // Utility function to execute queries with a promise wrapper
+// const performQuery = async (query: string, params: any[] = []) => {
 //   try {
-//     const [rows] = await db.query('SELECT * FROM your_table');
-//     res.json(rows);
+//     const [result] = await db.query(query, params);
+//     return result;
 //   } catch (error) {
-//     res.status(500).send('Error fetching data from the database');
+//     throw error;
 //   }
+// };
+
+// // Reusable CRUD handler
+// const handleCRUD = async (
+//   req: Request,
+//   res: Response,
+//   operation: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'SIGNUP', // Added SIGNUP
+//   table: string,
+//   data: Record<string, any> = {},
+//   conditions: Record<string, any> = {}
+// ): Promise<void | Response> => { // Updated return type
+//   try {
+//     let query = '';
+//     const queryParams: any[] = [];
+
+//     switch (operation) {
+//       case 'CREATE': {
+//         const keys = Object.keys(data).join(', ');
+//         const placeholders = Object.values(data).map(() => '?').join(', ');
+//         query = `INSERT INTO ${table} (${keys}) VALUES (${placeholders})`;
+//         queryParams.push(...Object.values(data));
+//         break;
+//       }
+//       case 'READ': {
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `SELECT * FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(conditions));
+//         break;
+//       }
+//       case 'UPDATE': {
+//         const setClause = Object.keys(data)
+//           .map((key) => `${key} = ?`)
+//           .join(', ');
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `UPDATE ${table} SET ${setClause} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(data), ...Object.values(conditions));
+//         break;
+//       }
+//       case 'DELETE': {
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `DELETE FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(conditions));
+//         break;
+//       }
+//       case 'SIGNUP': { // Handle the SIGNUP case
+//         const { firstName, lastName, middleInitial, age, contactNumber, yearLevel, course, dormName, dormAddress, capacity, accountType } = req.body;
+
+//         // Start transaction
+//         await db.query('BEGIN');
+
+//         if (accountType === 'applicant') {
+//           // Insert into applicants table
+//           const insertApplicantQuery = `INSERT INTO applicants (firstname, lastname, middleInitial, age, contactNumber, yearLevel, course) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+//           await performQuery(insertApplicantQuery, [firstName, lastName, middleInitial, age, contactNumber, yearLevel, course]);
+//         } else if (accountType === 'land_owner') {
+//           // Insert into landowners table
+//           const insertLandOwnerQuery = `INSERT INTO landowners (firstname, lastname, middleInitial, dormName, dormAddress, capacity, contactNumber) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+//           await performQuery(insertLandOwnerQuery, [firstName, lastName, middleInitial, dormName, dormAddress, capacity, contactNumber]);
+//         } else {
+//           return res.status(400).json({ success: false, message: 'Invalid account type' });
+//         }
+
+//         // Commit the transaction
+//         await db.query('COMMIT');
+//         return res.status(200).json({ success: true, message: 'User registered successfully!' });
+//       }
+//       default:
+//         throw new Error('Invalid CRUD operation');
+//     }
+
+//     const result = await performQuery(query, queryParams);
+
+//     res.json({
+//       message: `${operation} operation successful`,
+//       data: result,
+//     });
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       res.status(500).json({ message: error.message });
+//     } else {
+//       res.status(500).json({ message: 'An unknown error occurred' });
+//     }
+//   }
+// };
+
+// // Route to handle CRUD and SIGNUP actions
+// router.post('/signup', async (req: Request, res: Response) => {
+//   await handleCRUD(req, res, 'SIGNUP', '', req.body); // Pass the request body as data
 // });
 
 // export default router;
-import express, { Request, Response, Router, RequestHandler } from 'express';
+
+
+
+import express, { Request, Response, Router } from 'express';
 import db from '../config/db';
 
 const router: Router = express.Router();
 
-// Explicitly define the return type for async functions as `void`
-// RequestHandler already ensures void return type, so just use it correctly
-const getData: RequestHandler = async (req: Request, res: Response) => {
+// Utility function to execute queries with a promise wrapper
+const performQuery = async (query: string, params: any[] = []) => {
   try {
-    const [rows] = await db.query('SELECT * FROM your_table');
-    res.json(rows);  // We send the response, but no need to return anything
+    const [result] = await db.query(query, params);
+    return result;
   } catch (error) {
-    console.error('Error fetching data:', error);
-    res.status(500).send('Error fetching data from the database');
+    throw error;
   }
 };
 
-const postData: RequestHandler = async (req: Request, res: Response) => {
-  const { name, value } = req.body;
-  if (!name || value === undefined) {
-    return res.status(400).send('Name and value are required');
-  }
+// Reusable CRUD handler
+const handleCRUD = async (
+  req: Request,
+  res: Response,
+  operation: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE',
+  table: string,
+  data: Record<string, any> = {},
+  conditions: Record<string, any> = {}
+): Promise<void> => {
   try {
-    const [result] = await db.query('INSERT INTO your_table (name, value) VALUES (?, ?)', [name, value]);
-    const insertId = (result as any).insertId; // Type assertion for insertId
+    let query = '';
+    const queryParams: any[] = [];
 
-    res.status(201).json({ message: 'Data inserted successfully', insertId });
+    switch (operation) {
+      case 'CREATE': {
+        const keys = Object.keys(data).join(', ');
+        const placeholders = Object.values(data).map(() => '?').join(', ');
+        query = `INSERT INTO ${table} (${keys}) VALUES (${placeholders})`;
+        queryParams.push(...Object.values(data));
+        break;
+      }
+      case 'READ': {
+        const whereClause = Object.keys(conditions)
+          .map((key) => `${key} = ?`)
+          .join(' AND ');
+        query = `SELECT * FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+        queryParams.push(...Object.values(conditions));
+        break;
+      }
+      case 'UPDATE': {
+        const setClause = Object.keys(data)
+          .map((key) => `${key} = ?`)
+          .join(', ');
+        const whereClause = Object.keys(conditions)
+          .map((key) => `${key} = ?`)
+          .join(' AND ');
+        query = `UPDATE ${table} SET ${setClause} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+        queryParams.push(...Object.values(data), ...Object.values(conditions));
+        break;
+      }
+      case 'DELETE': {
+        const whereClause = Object.keys(conditions)
+          .map((key) => `${key} = ?`)
+          .join(' AND ');
+        query = `DELETE FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+        queryParams.push(...Object.values(conditions));
+        break;
+      }
+      default:
+        throw new Error('Invalid CRUD operation');
+    }
+
+    const result = await performQuery(query, queryParams);
+
+    res.json({
+      message: `${operation} operation successful`,
+      data: result,
+    });
   } catch (error) {
-    console.error('Error inserting data:', error);
-    res.status(500).send('Error inserting data into the database');
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: 'An unknown error occurred' });
+    }
   }
 };
 
-// Apply routes to the router
-router.get('/data', getData);
-router.post('/data', postData);
+// Route to handle CREATE operation
+router.post('/create/:table', async (req: Request, res: Response) => {
+  const { table } = req.params;
+  const data = req.body;
+
+  await handleCRUD(req, res, 'CREATE', table, data);
+});
+
+// Route to handle READ operation
+router.get('/read/:table', async (req: Request, res: Response) => {
+  const { table } = req.params;
+  const conditions = req.query;
+
+  await handleCRUD(req, res, 'READ', table, {}, conditions);
+});
+
+// Route to handle UPDATE operation
+router.put('/update/:table', async (req: Request, res: Response) => {
+  const { table } = req.params;
+  const { data, conditions } = req.body;
+
+  await handleCRUD(req, res, 'UPDATE', table, data, conditions);
+});
+
+// Route to handle DELETE operation
+router.delete('/delete/:table', async (req: Request, res: Response) => {
+  const { table } = req.params;
+  const conditions = req.body;
+
+  await handleCRUD(req, res, 'DELETE', table, {}, conditions);
+});
 
 export default router;
+
+// import express, { Request, Response, Router } from 'express';
+// import db from '../config/db';
+
+// const router: Router = express.Router();
+
+// // Utility function to execute queries with a promise wrapper
+// const performQuery = async (query: string, params: any[] = []) => {
+//   try {
+//     const [result] = await db.query(query, params);
+//     return result;
+//   } catch (error) {
+//     throw error;
+//   }
+// };
+
+// // Reusable CRUD handler
+// const handleCRUD = async (
+//   req: Request,
+//   res: Response,
+//   operation: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'SIGNUP', // Added SIGNUP
+//   table: string,
+//   data: Record<string, any> = {},
+//   conditions: Record<string, any> = {}
+// ): Promise<void | Response> => { // Updated return type
+//   try {
+//     let query = '';
+//     const queryParams: any[] = [];
+
+//     switch (operation) {
+//       case 'CREATE': {
+//         const keys = Object.keys(data).join(', ');
+//         const placeholders = Object.values(data).map(() => '?').join(', ');
+//         query = `INSERT INTO ${table} (${keys}) VALUES (${placeholders})`;
+//         queryParams.push(...Object.values(data));
+//         break;
+//       }
+//       case 'READ': {
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `SELECT * FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(conditions));
+//         break;
+//       }
+//       case 'UPDATE': {
+//         const setClause = Object.keys(data)
+//           .map((key) => `${key} = ?`)
+//           .join(', ');
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `UPDATE ${table} SET ${setClause} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(data), ...Object.values(conditions));
+//         break;
+//       }
+//       case 'DELETE': {
+//         const whereClause = Object.keys(conditions)
+//           .map((key) => `${key} = ?`)
+//           .join(' AND ');
+//         query = `DELETE FROM ${table} ${whereClause ? `WHERE ${whereClause}` : ''}`;
+//         queryParams.push(...Object.values(conditions));
+//         break;
+//       }
+//       case 'SIGNUP': { // Handle the SIGNUP case
+//         const { firstName, lastName, middleInitial, age, contactNumber, yearLevel, course, dormName, dormAddress, capacity, accountType } = req.body;
+
+//         // Start transaction
+//         await db.query('BEGIN');
+
+//         if (accountType === 'applicant') {
+//           // Insert into applicants table
+//           const insertApplicantQuery = `INSERT INTO applicants (firstname, lastname, middleInitial, age, contactNumber, yearLevel, course) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+//           await performQuery(insertApplicantQuery, [firstName, lastName, middleInitial, age, contactNumber, yearLevel, course]);
+//         } else if (accountType === 'land_owner') {
+//           // Insert into landowners table
+//           const insertLandOwnerQuery = `INSERT INTO landowners (firstname, lastname, middleInitial, dormName, dormAddress, capacity, contactNumber) VALUES ($1, $2, $3, $4, $5, $6, $7)`;
+//           await performQuery(insertLandOwnerQuery, [firstName, lastName, middleInitial, dormName, dormAddress, capacity, contactNumber]);
+//         } else {
+//           return res.status(400).json({ success: false, message: 'Invalid account type' });
+//         }
+
+//         // Commit the transaction
+//         await db.query('COMMIT');
+//         return res.status(200).json({ success: true, message: 'User registered successfully!' });
+//       }
+//       default:
+//         throw new Error('Invalid CRUD operation');
+//     }
+
+//     const result = await performQuery(query, queryParams);
+
+//     res.json({
+//       message: `${operation} operation successful`,
+//       data: result,
+//     });
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       res.status(500).json({ message: error.message });
+//     } else {
+//       res.status(500).json({ message: 'An unknown error occurred' });
+//     }
+//   }
+// };
+
+// // Route to handle CREATE operation
+// router.post('/create/:table', async (req: Request, res: Response) => {
+//   const { table } = req.params;
+//   const data = req.body;
+
+//   await handleCRUD(req, res, 'CREATE', table, data);
+// });
+
+// // Route to handle READ operation
+// router.get('/read/:table', async (req: Request, res: Response) => {
+//   const { table } = req.params;
+//   const conditions = req.query;
+
+//   await handleCRUD(req, res, 'READ', table, {}, conditions);
+// });
+
+// // Route to handle UPDATE operation
+// router.put('/update/:table', async (req: Request, res: Response) => {
+//   const { table } = req.params;
+//   const { data, conditions } = req.body;
+
+//   await handleCRUD(req, res, 'UPDATE', table, data, conditions);
+// });
+
+// // Route to handle DELETE operation
+// router.delete('/delete/:table', async (req: Request, res: Response) => {
+//   const { table } = req.params;
+//   const conditions = req.body;
+
+//   await handleCRUD(req, res, 'DELETE', table, {}, conditions);
+// });
+
+// // Route to handle SIGNUP action
+// router.post('/signup', async (req: Request, res: Response) => {
+//   await handleCRUD(req, res, 'SIGNUP', '', req.body); // Pass the request body as data
+// });
+
+// export default router;
