@@ -537,7 +537,7 @@ interface BakanteMapProps {
   lastname: string;
 }
 
-const imageUrl = "src/components/test.jpg"; // CAPLOCK COMMENT: IMAGE ALWAYS ON TOP
+const imageUrl = "src/components/map.png"; // CAPLOCK COMMENT: IMAGE ALWAYS ON TOP
 const imageWidth = 3000;
 const imageHeight = 4000;
 const boundingWidth = imageWidth - 2000;
@@ -545,11 +545,11 @@ const boundingHeight = imageHeight - 2000;
 const bounds: L.LatLngBoundsLiteral = [[0, 0], [boundingHeight, boundingWidth]];
 
 const buttonCoordinates: [number, number][] = [
-  [200, 800],
-  [800, 1000],
-  [400, 600],
-  [700, 800],
-  [1500, 5000],
+  [200, 1800],
+  [800, 2000],
+  [400, 3200],
+  [700, 2500],
+  [1500, 3400],
 ];
 
 const BakanteMap: React.FC<BakanteMapProps> = ({ firstname, lastname }) => {
@@ -592,26 +592,26 @@ const BakanteMap: React.FC<BakanteMapProps> = ({ firstname, lastname }) => {
   // Fetch dorm details when a location button is clicked
   const handleButtonClick = (id: string) => {
     setSelectedButton(id); // Reset the selected button
-    alert(`Location ${id} was clicked!`);
+    // alert(`Location ${id} was clicked!`);
 
     let dormId = "";
     let dormImagePath = ""; // Initialize the dorm image path
 
     if (id === "Location 1") {
       dormId = "dorm1";
-      dormImagePath = "src/components/customdorm1.jpg";
+      dormImagePath = "src/components/last.jpg";
     } else if (id === "Location 2") {
       dormId = "dorm2";
-      dormImagePath = "src/components/photo.jpg";
+      dormImagePath = "src/components/ewan.jpg";
     } else if (id === "Location 3") {
       dormId = "dorm3";
-      dormImagePath = "src/components/customdorm3.jpg";
+      dormImagePath = "src/components/dorm3.jpg";
     } else if (id === "Location 4") {
       dormId = "dorm4";
       dormImagePath = "src/components/example.jpg";
     } else if (id === "Location 5") {
       dormId = "dorm5";
-      dormImagePath = "src/components/customdorm5.jpg";
+      dormImagePath = "src/components/beshie.jpg";
     }
 
     console.log("Selected dormId:", dormId);
@@ -629,7 +629,7 @@ const BakanteMap: React.FC<BakanteMapProps> = ({ firstname, lastname }) => {
         const dormData = await response.json();
         console.log("Fetched dorm data:", dormData);
 
-        alert(`Dorm data fetched: ${JSON.stringify(dormData)}`);
+        // alert(`Dorm data fetched: ${JSON.stringify(dormData)}`);
 
         if (Array.isArray(dormData.data)) {
           const dorm = dormData.data.find((dorm: { dormName: string }) => dorm.dormName === dormId);
@@ -637,8 +637,8 @@ const BakanteMap: React.FC<BakanteMapProps> = ({ firstname, lastname }) => {
           if (dorm) {
             setDormName(dorm.dormName);
             setDormAddress(dorm.dormAddress);
-            alert(`Dorm Address for ${dorm.dormName}: ${dorm.dormAddress}`);
-            console.log(`Dorm Address for ${dorm.dormName}: ${dorm.dormAddress}`);
+            // alert(`Dorm Address for ${dorm.dormName}: ${dorm.dormAddress}`);
+            // console.log(`Dorm Address for ${dorm.dormName}: ${dorm.dormAddress}`);
           } else {
             console.warn("Dorm not found.");
             alert("Dorm not found.");
@@ -680,7 +680,7 @@ const getContactNumber = async () => {
     );
   
     if (applicant) {
-      alert(`Contact Number: ${applicant.contactNumber}`);
+    //   alert(`Contact Number: ${applicant.contactNumber}`);
       
       try {
         // Prepare the data for the POST request

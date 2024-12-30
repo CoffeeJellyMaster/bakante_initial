@@ -554,7 +554,7 @@ const App = () => {
   return (
     <Router>
       <div className="App">
-        <h1>Login Page</h1>
+        <h1>BAKANTE WEB-APP</h1>
 
         <Routes>
           <Route
